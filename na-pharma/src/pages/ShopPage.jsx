@@ -1,14 +1,19 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PackageSearch, RotateCcw } from 'lucide-react'
 
-import { ALL_MEDICINES, PRICE_RANGES } from '../data/medicines'
+import { PRICE_RANGES, CATEGORIES } from '../data/medicines'
+import { getMedicines } from '../api/medicineApi'
 import MedicineCard from '../components/shop/MedicineCard'
 import ShopHero from '../components/shop/ShopHero'
 import ShopFilters from '../components/shop/ShopFilters'
 import ShopPagination from '../components/shop/ShopPagination'
+import LoadingSkeleton from '../components/ui/LoadingSkeleton'
+import usePageMeta from '../hooks/usePageMeta'
 import Button from '../components/ui/Button'
+import { useCart } from '../context/CartContext'
+import showToast from '../utils/toast'
 
 const ITEMS_PER_PAGE = 12
 
@@ -23,87 +28,85 @@ const DEFAULT_FILTERS = {
 }
 
 export default function ShopPage() {
+  usePageMeta('Shop', 'Browse 10,000+ certified medicines and healthcare products with fast delivery.')
   const [searchParams] = useSearchParams()
   const [filters, setFilters] = useState(() => ({
     ...DEFAULT_FILTERS,
-    // Pre-fill from URL query params (e.g. /shop?q=paracetamol&category=Tablet)
     search:   searchParams.get('q')        || '',
     category: searchParams.get('category') || 'All',
   }))
-  const [currentPage, setCurrentPage]   = useState(1)
-  const [drawerOpen, setDrawerOpen]     = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [drawerOpen, setDrawerOpen]   = useState(false)
 
-  // Reset to page 1 whenever filters change
+  // ── Real API data ────────────────────────────────────────────────────
+  const [medicines, setMedicines]   = useState([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [loading, setLoading]       = useState(true)
+  const [apiError, setApiError]     = useState(false)
+
+  const { addItem } = useCart()
+
+  const fetchMedicines = useCallback(async () => {
+    setLoading(true)
+    setApiError(false)
+    try {
+      const params = {
+        page:  currentPage,
+        limit: ITEMS_PER_PAGE,
+      }
+      if (filters.search.trim())       params.search   = filters.search.trim()
+      if (filters.category !== 'All')  params.category = filters.category.toLowerCase()
+      if (filters.inStockOnly)         params.inStock  = true
+      if (filters.minRating > 0)       params.minRating = filters.minRating
+
+      // Map sort values to backend sort params
+      const sortMap = {
+        'price-asc':   'price',
+        'price-desc':  '-price',
+        'rating-desc': '-ratings.average',
+        'newest':      '-createdAt',
+        'featured':    '-isFeatured',
+      }
+      if (sortMap[filters.sort]) params.sort = sortMap[filters.sort]
+
+      const data = await getMedicines(params)
+      // Normalise backend medicine shape to match MedicineCard props
+      const normalised = (data.medicines ?? []).map((m) => ({
+        id:                   m._id,
+        name:                 m.name,
+        brand:                m.brand,
+        price:                m.price,
+        originalPrice:        m.discountPrice ?? null,
+        category:             m.category.charAt(0).toUpperCase() + m.category.slice(1),
+        inStock:              m.stock > 0,
+        rating:               m.ratings?.average ?? 0,
+        reviewCount:          m.ratings?.count   ?? 0,
+        badge:                m.isFeatured ? 'Featured' : null,
+        image:                m.image || null,
+        prescriptionRequired: m.prescriptionRequired,
+      }))
+
+      // Client-side price range filter (backend doesn't support it yet)
+      const range = PRICE_RANGES.find((r) => r.value === filters.priceRange)
+      const filtered = range && filters.priceRange !== 'all'
+        ? normalised.filter((m) => m.price >= range.min && m.price <= range.max)
+        : normalised
+
+      setMedicines(filtered)
+      setTotalCount(data.pagination?.total ?? filtered.length)
+      setTotalPages(data.pagination?.totalPages ?? 1)
+    } catch {
+      setApiError(true)
+      setMedicines([])
+    } finally {
+      setLoading(false)
+    }
+  }, [filters, currentPage])
+
+  useEffect(() => { fetchMedicines() }, [fetchMedicines])
   useEffect(() => { setCurrentPage(1) }, [filters])
 
-  // ── Filter + sort logic (pure, no backend) ──────────────────────────────
-  const filteredMedicines = useMemo(() => {
-    let result = [...ALL_MEDICINES]
-
-    // Search
-    if (filters.search.trim()) {
-      const q = filters.search.toLowerCase()
-      result = result.filter(
-        (m) =>
-          m.name.toLowerCase().includes(q) ||
-          m.brand.toLowerCase().includes(q) ||
-          m.category.toLowerCase().includes(q)
-      )
-    }
-
-    // Category
-    if (filters.category !== 'All') {
-      result = result.filter((m) => m.category === filters.category)
-    }
-
-    // Price range
-    if (filters.priceRange !== 'all') {
-      const range = PRICE_RANGES.find((r) => r.value === filters.priceRange)
-      if (range) {
-        result = result.filter((m) => m.price >= range.min && m.price <= range.max)
-      }
-    }
-
-    // Minimum rating
-    if (filters.minRating > 0) {
-      result = result.filter((m) => m.rating >= filters.minRating)
-    }
-
-    // In stock only
-    if (filters.inStockOnly) {
-      result = result.filter((m) => m.inStock)
-    }
-
-    // Sort
-    switch (filters.sort) {
-      case 'price-asc':
-        result.sort((a, b) => a.price - b.price)
-        break
-      case 'price-desc':
-        result.sort((a, b) => b.price - a.price)
-        break
-      case 'rating-desc':
-        result.sort((a, b) => b.rating - a.rating)
-        break
-      case 'newest':
-        result.sort((a, b) => b.id - a.id)
-        break
-      default:
-        // 'featured' — keep original order, but put badged items first
-        result.sort((a, b) => (b.badge ? 1 : 0) - (a.badge ? 1 : 0))
-    }
-
-    return result
-  }, [filters])
-
-  // ── Pagination ───────────────────────────────────────────────────────────
-  const totalPages = Math.ceil(filteredMedicines.length / ITEMS_PER_PAGE)
-  const paginatedMedicines = filteredMedicines.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  )
-
-  // ── Handlers ─────────────────────────────────────────────────────────────
   function handleFilterChange(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }))
   }
@@ -113,12 +116,29 @@ export default function ShopPage() {
     setCurrentPage(1)
   }
 
+  function handleAddToCart(medicine) {
+    if (!medicine.inStock) return
+    addItem({
+      id:                   String(medicine.id),
+      name:                 medicine.name,
+      brand:                medicine.brand,
+      price:                medicine.price,
+      originalPrice:        medicine.originalPrice ?? null,
+      quantity:             1,
+      image:                medicine.image ?? '',
+      category:             medicine.category,
+      inStock:              medicine.inStock,
+      requiresPrescription: medicine.prescriptionRequired ?? false,
+    })
+    showToast.success(`${medicine.name.split(' ').slice(0, 3).join(' ')} added to cart`)
+  }
+
   return (
     <div data-testid="shop-page" className="min-h-screen bg-neutral-50">
 
       {/* ── Hero / Header ── */}
       <ShopHero
-        totalResults={filteredMedicines.length}
+        totalResults={loading ? 0 : totalCount}
         searchQuery={filters.search}
         activeCategory={filters.category}
       />
@@ -129,58 +149,83 @@ export default function ShopPage() {
         onFilterChange={handleFilterChange}
         drawerOpen={drawerOpen}
         onDrawerToggle={() => setDrawerOpen((v) => !v)}
-        totalResults={filteredMedicines.length}
+        totalResults={loading ? 0 : totalCount}
       />
 
       {/* ── Main content: sidebar + grid ── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex gap-8 items-start">
 
-          {/* Desktop sidebar — rendered by ShopFilters */}
+          {/* Desktop sidebar */}
           <ShopFilters
             filters={filters}
             onFilterChange={handleFilterChange}
             drawerOpen={false}
             onDrawerToggle={() => {}}
-            totalResults={filteredMedicines.length}
+            totalResults={loading ? 0 : totalCount}
           />
 
           {/* ── Product grid ── */}
           <div className="flex-1 min-w-0">
 
-            {/* Active filter chips */}
             <ActiveFilterChips filters={filters} onFilterChange={handleFilterChange} onReset={handleReset} />
 
-            {/* Grid or empty state */}
             <AnimatePresence mode="wait">
-              {paginatedMedicines.length === 0 ? (
+              {/* Loading skeletons */}
+              {loading ? (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5"
+                >
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <LoadingSkeleton key={i} variant="card" />
+                  ))}
+                </motion.div>
+              ) : apiError ? (
+                /* API error state */
+                <motion.div
+                  key="error"
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col items-center justify-center text-center py-20 px-4"
+                >
+                  <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mb-5">
+                    <PackageSearch size={28} className="text-red-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-neutral-900 mb-2">Could not load medicines</h3>
+                  <p className="text-neutral-500 text-sm max-w-xs mb-6">
+                    There was a problem connecting to the server. Please try again.
+                  </p>
+                  <Button onClick={fetchMedicines} variant="outline" size="sm" leftIcon={<RotateCcw size={14} />}>
+                    Retry
+                  </Button>
+                </motion.div>
+              ) : medicines.length === 0 ? (
                 <EmptyState key="empty" onReset={handleReset} />
               ) : (
                 <motion.div
                   key={`page-${currentPage}-${filters.category}-${filters.search}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   transition={{ duration: 0.25 }}
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                    {paginatedMedicines.map((medicine, i) => (
+                    {medicines.map((medicine, i) => (
                       <motion.div
                         key={medicine.id}
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, delay: i * 0.04 }}
+                        className="h-full"
                       >
                         <MedicineCard
                           {...medicine}
-                          onAddToCart={() => console.log('Cart:', medicine.name)}
-                          onAddToWishlist={() => console.log('Wishlist:', medicine.name)}
+                          onAddToCart={() => handleAddToCart(medicine)}
+                          onAddToWishlist={() => showToast.info('Wishlist coming soon')}
                         />
                       </motion.div>
                     ))}
                   </div>
 
-                  {/* Pagination */}
                   <ShopPagination
                     currentPage={currentPage}
                     totalPages={totalPages}

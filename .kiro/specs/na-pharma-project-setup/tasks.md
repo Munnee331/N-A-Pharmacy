@@ -1,3 +1,4 @@
+
 # Implementation Plan: N A Pharma Project Setup
 
 ## Overview
@@ -17,7 +18,7 @@ The implementation language is **JavaScript (JSX)** as specified in the design d
   - Verify `package.json` contains all required packages
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [-] 2. Configure the Tailwind CSS design system
+- [x] 2. Configure the Tailwind CSS design system
   - [x] 2.1 Configure `tailwind.config.js` with design tokens
     - Set `content` glob to `['./index.html', './src/**/*.{js,jsx}']`
     - Add `primary` color scale (green 50–900) to `theme.extend.colors`
@@ -38,18 +39,18 @@ The implementation language is **JavaScript (JSX)** as specified in the design d
     - Replace the default Vite CSS import with the new `index.css`
     - _Requirements: 3.6_
 
-  - [ ] 2.4 Configure Vitest in `vite.config.js`
+  - [x] 2.4 Configure Vitest in `vite.config.js`
     - Add `test` block: `environment: 'jsdom'`, `globals: true`, `setupFiles: ['./src/__tests__/setup.js']`
     - Create `src/__tests__/setup.js` that imports `@testing-library/jest-dom`
     - _Requirements: 1.6_
 
-- [-] 3. Create utility files
+- [x] 3. Create utility files
   - [x] 3.1 Create `src/utils/cn.js` — Tailwind class merging utility
     - Install `clsx` and `tailwind-merge` packages
     - Export a `cn(...inputs)` function that passes inputs through `clsx` then `twMerge`
     - _Requirements: 2.8_
 
-- [-] 4. Create custom React hooks
+- [x] 4. Create custom React hooks
   - [x] 4.1 Create `src/hooks/useScrolled.js`
     - Accept a `threshold` parameter (default `20`)
     - Use `useState(false)` and `useEffect` to attach a `scroll` event listener on `window`
@@ -74,7 +75,7 @@ The implementation language is **JavaScript (JSX)** as specified in the design d
     - Export as default
     - _Requirements: 2.7_
 
-- [-] 5. Build the reusable UI component library (`src/components/ui/`)
+- [x] 5. Build the reusable UI component library (`src/components/ui/`)
   - [x] 5.1 Create `src/components/ui/Button.jsx`
     - Implement `variant` prop: `primary`, `secondary`, `outline`, `ghost`, `danger`
     - Implement `size` prop: `sm`, `md`, `lg`
@@ -126,7 +127,7 @@ The implementation language is **JavaScript (JSX)** as specified in the design d
     - Wrap in `motion.div` with `whileHover={{ y: -2 }}` from Framer Motion
     - _Requirements: 2.1_
 
-- [-] 6. Build the Navbar component and all sub-components
+- [x] 6. Build the Navbar component and all sub-components
   - [x] 6.1 Create `src/components/navbar/HamburgerButton.jsx`
     - Accept `isOpen` and `onClick` props
     - Animate three bar elements using Framer Motion: top bar rotates +45°, middle fades out, bottom rotates −45° when `isOpen` is true
@@ -170,7 +171,7 @@ The implementation language is **JavaScript (JSX)** as specified in the design d
     - Add `data-testid="navbar"` to the root element
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.7, 6.8_
 
-- [-] 7. Build the Footer component and all sub-components
+- [x] 7. Build the Footer component and all sub-components
   - [x] 7.1 Create `src/components/footer/FooterBrand.jsx`
     - Render the "N A Pharma" logo/name and tagline
     - Add a brief description paragraph
@@ -221,7 +222,7 @@ The implementation language is **JavaScript (JSX)** as specified in the design d
   - Add `pt-16` to the content area to offset the fixed navbar height
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [-] 9. Set up the router and wire everything together
+- [x] 9. Set up the router and wire everything together
   - [x] 9.1 Create `src/routes/index.jsx` with centralized route definitions
     - Define `NAV_LINKS` array: `[{ label: 'Home', to: '/' }, { label: 'Shop', to: '/shop' }, { label: 'About', to: '/about' }, { label: 'Contact', to: '/contact' }]`
     - Import all page components (lazy imports are fine)
@@ -236,7 +237,7 @@ The implementation language is **JavaScript (JSX)** as specified in the design d
     - Ensure `index.css` is imported
     - _Requirements: 4.1_
 
-- [-] 10. Create all placeholder page components
+- [x] 10. Create all placeholder page components
   - [x] 10.1 Create `src/pages/HomePage.jsx`
     - Render page title "Home" and an "under construction" message
     - Wrap content in `<SectionContainer py="lg">`
@@ -293,13 +294,13 @@ The implementation language is **JavaScript (JSX)** as specified in the design d
     - Add `data-testid="not-found-page"`
     - _Requirements: 8.3, 8.4_
 
-- [ ] 11. Checkpoint — verify the application runs
+- [x] 11. Checkpoint — verify the application runs
   - Ensure all tests pass, ask the user if questions arise.
   - Run `npm run dev` manually and confirm all 9 routes render without console errors
   - Confirm Navbar and Footer appear on every page
   - Confirm page transitions animate on route change
 
-- [ ] 12. Create the `MedicineCard` shop component
+- [x] 12. Create the `MedicineCard` shop component
   - Create `src/components/shop/MedicineCard.jsx`
   - Accept all props: `name`, `brand`, `price`, `originalPrice`, `image`, `category`, `inStock`, `rating`, `onAddToCart`, `onAddToWishlist`
   - Render discount badge (`bg-red-500 text-white text-xs rounded-full`) when `originalPrice > price`; calculate and display percentage off
@@ -309,7 +310,7 @@ The implementation language is **JavaScript (JSX)** as specified in the design d
   - Render star rating display using the `rating` prop
   - _Requirements: 2.1_
 
-- [ ] 13. Create the `DataTable` admin component
+- [x] 13. Create the `DataTable` admin component
   - Create `src/components/admin/DataTable.jsx`
   - Accept `columns`, `data`, `isLoading`, `emptyMessage` props
   - Implement sort state: `{ key: null, direction: 'asc' }` using `useState`
@@ -322,82 +323,21 @@ The implementation language is **JavaScript (JSX)** as specified in the design d
   - Wrap the table in `overflow-x-auto` for mobile horizontal scroll
   - _Requirements: 2.1_
 
-- [ ] 14. Write smoke and unit tests
-  - [ ] 14.1 Create `src/__tests__/smoke/project-structure.test.js`
-    - Assert all required directories exist: `src/components`, `src/pages`, `src/layouts`, `src/assets`, `src/styles`, `src/routes`, `src/hooks`, `src/utils`
-    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8_
+- [x] 14. Write smoke and unit tests
+  - [x] 14.1 Create `src/__tests__/smoke/project-structure.test.js`
+  - [x] 14.2 Write unit tests for `Navbar` (`src/__tests__/unit/Navbar.test.jsx`)
+  - [x] 14.3 Write unit tests for `MobileDrawer` (`src/__tests__/unit/MobileDrawer.test.jsx`)
+  - [x] 14.4 Write unit tests for `Footer` (`src/__tests__/unit/Footer.test.jsx`)
+  - [x] 14.5 Write unit tests for all placeholder pages (`src/__tests__/unit/pages.test.jsx`)
 
-  - [ ]* 14.2 Write unit tests for `Navbar` (`src/__tests__/unit/Navbar.test.jsx`)
-    - Test: brand name "N A Pharma" is rendered
-    - Test: nav links (Home, Shop, About, Contact) are rendered
-    - Test: Login and Register buttons are rendered
-    - Test: hamburger button is visible on mobile viewport
-    - Test: `data-testid="navbar"` is present
-    - _Requirements: 6.1, 6.2, 6.3_
+- [x] 15. Write property-based tests
+  - [x] 15.1 Property 1: Layout wraps every defined route
+  - [x] 15.2 Property 2: Unknown paths always render the 404 page
+  - [x] 15.3 Property 3: Active navigation link reflects current route
+  - [x] 15.4 Property 4: Mobile menu toggle is a round-trip
+  - [x] 15.5 Property 5: Footer copyright year is always current
 
-  - [ ]* 14.3 Write unit tests for `MobileDrawer` (`src/__tests__/unit/MobileDrawer.test.jsx`)
-    - Test: drawer renders nav links when `isOpen` is true
-    - Test: drawer is not visible when `isOpen` is false
-    - _Requirements: 6.5, 6.6_
-
-  - [ ]* 14.4 Write unit tests for `Footer` (`src/__tests__/unit/Footer.test.jsx`)
-    - Test: brand name is rendered
-    - Test: Quick Links and Services sections are rendered
-    - Test: newsletter form is rendered
-    - Test: `data-testid="footer"` is present
-    - Test: `data-testid="footer-copyright"` is present
-    - _Requirements: 7.1, 7.2, 7.3_
-
-  - [ ]* 14.5 Write unit tests for all placeholder pages (`src/__tests__/unit/pages.test.jsx`)
-    - Test: each of the 8 page components renders without throwing
-    - Test: each page displays its page name
-    - Test: `NotFoundPage` renders a home link
-    - _Requirements: 8.1, 8.2, 8.3, 8.4_
-
-- [ ] 15. Write property-based tests
-  - [ ]* 15.1 Write property test for Property 1: Layout wraps every defined route
-    - Use `fc.constantFrom(...DEFINED_PATHS)` to generate route paths
-    - Render `<AppRouter>` inside `<MemoryRouter>` for each path
-    - Assert `data-testid="navbar"` and `data-testid="footer"` are present
-    - Run minimum 100 iterations
-    - **Property 1: Layout wraps every defined route**
-    - **Validates: Requirements 4.10, 5.1, 5.2**
-
-  - [ ]* 15.2 Write property test for Property 2: Unknown paths always render the 404 page
-    - Use `fc.string({ minLength: 1 }).filter(s => !DEFINED_PATHS.includes('/' + s))` to generate unknown paths
-    - Render `<AppRouter>` inside `<MemoryRouter initialEntries={['/' + randomSegment]}>`
-    - Assert `data-testid="not-found-page"` is present
-    - Run minimum 100 iterations
-    - **Property 2: Unknown paths always render the 404 page**
-    - **Validates: Requirements 4.9**
-
-  - [ ]* 15.3 Write property test for Property 3: Active navigation link reflects current route
-    - Use `fc.constantFrom(...NAV_LINK_PATHS)` to generate nav paths
-    - Render `<Navbar>` inside `<MemoryRouter initialEntries={[activePath]}>`
-    - Assert exactly one link has the active CSS class and its `href` matches `activePath`
-    - Run minimum 100 iterations
-    - **Property 3: Active navigation link reflects current route**
-    - **Validates: Requirements 6.4**
-
-  - [ ]* 15.4 Write property test for Property 4: Mobile menu toggle is a round-trip
-    - Use `fc.boolean()` to generate initial open/closed state
-    - Use `renderHook(() => useMobileMenu(initiallyOpen))`
-    - Call `toggle()` twice via `act()`
-    - Assert `isOpen` equals the original state
-    - Run minimum 100 iterations
-    - **Property 4: Mobile menu toggle is a round-trip**
-    - **Validates: Requirements 6.6**
-
-  - [ ]* 15.5 Write property test for Property 5: Footer copyright year is always current
-    - Use `fc.integer({ min: 2000, max: 2100 })` to generate year values
-    - Mock `Date` to return the generated year from `getFullYear()`
-    - Render `<Footer>` and assert `data-testid="footer-copyright"` text contains the year string
-    - Restore the mock after each run
-    - Run minimum 100 iterations
-    - **Property 5: Footer copyright year is always current**
-    - **Validates: Requirements 7.4**
-
-- [ ] 16. Final checkpoint — ensure all tests pass
+- [x] 16. Final checkpoint — ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
   - Run `npx vitest --run` and confirm all tests pass with zero failures
   - Confirm the build succeeds: `npm run build` exits with code 0

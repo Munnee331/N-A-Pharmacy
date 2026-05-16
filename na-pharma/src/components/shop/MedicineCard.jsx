@@ -61,7 +61,7 @@ export default function MedicineCard({
       transition={{ duration: 0.2 }}
       className="group relative bg-white rounded-2xl border border-neutral-100
                  shadow-soft hover:shadow-soft-lg transition-shadow overflow-hidden
-                 flex flex-col"
+                 flex flex-col h-full"
     >
       {/* ── Image area ── */}
       <div className="relative bg-gradient-to-br from-neutral-50 to-neutral-100 aspect-[4/3] overflow-hidden">

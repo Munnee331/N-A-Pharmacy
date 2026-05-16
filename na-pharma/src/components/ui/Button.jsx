@@ -18,17 +18,22 @@ const sizeStyles = {
 }
 
 /**
- * Reusable button component with multiple variants and sizes.
+ * Polymorphic button component.
  *
- * @param {object} props
- * @param {'primary'|'secondary'|'outline'|'ghost'|'danger'} props.variant
- * @param {'sm'|'md'|'lg'} props.size
- * @param {boolean} props.isLoading - Shows spinner and disables the button
- * @param {React.ReactNode} props.leftIcon - Icon rendered before the label
- * @param {React.ReactNode} props.rightIcon - Icon rendered after the label
+ * Renders as a <button> by default. Pass `as={Link}` (or any component / tag)
+ * to render as that element instead — all styling and props are forwarded.
+ *
+ * @param {object}  props
+ * @param {React.ElementType} [props.as='button'] - Element or component to render as
+ * @param {'primary'|'secondary'|'outline'|'ghost'|'danger'} [props.variant='primary']
+ * @param {'sm'|'md'|'lg'} [props.size='md']
+ * @param {boolean}  [props.isLoading=false] - Shows spinner and disables interaction
+ * @param {React.ReactNode} [props.leftIcon]  - Icon before label
+ * @param {React.ReactNode} [props.rightIcon] - Icon after label
  * @param {React.ReactNode} props.children
  */
 export default function Button({
+  as: Component = 'button',
   variant = 'primary',
   size = 'md',
   isLoading = false,
@@ -39,17 +44,23 @@ export default function Button({
   disabled,
   ...rest
 }) {
+  // <button> supports disabled; other elements (Link, a) do not — handle gracefully
+  const isNativeButton = Component === 'button'
+
   return (
-    <button
-      disabled={disabled || isLoading}
+    <Component
+      {...(isNativeButton ? { disabled: disabled || isLoading } : {})}
+      aria-disabled={!isNativeButton && (disabled || isLoading) ? true : undefined}
       className={cn(
-        // Base styles
+        // Base
         'inline-flex items-center justify-center font-medium transition-all duration-200',
         'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         // Variant + size
         variantStyles[variant],
         sizeStyles[size],
+        // Visually disable non-button elements
+        (disabled || isLoading) && !isNativeButton && 'opacity-50 pointer-events-none',
         className
       )}
       {...rest}
@@ -61,6 +72,6 @@ export default function Button({
       )}
       {children}
       {!isLoading && rightIcon}
-    </button>
+    </Component>
   )
 }

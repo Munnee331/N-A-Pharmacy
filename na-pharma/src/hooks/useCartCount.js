@@ -1,9 +1,12 @@
+import { useCart } from '../context/CartContext.jsx'
+
 /**
- * Returns the current cart item count.
- * Stub for this phase — replace with context/store in a future phase.
+ * Returns the total number of items in the cart (sum of all quantities).
+ * Reads from CartContext.
  *
  * @returns {number}
  */
-export default function useCartCount() {
-  return 0
+export default function useCartCount () {
+  const { totalItems } = useCart()
+  return totalItems
 }

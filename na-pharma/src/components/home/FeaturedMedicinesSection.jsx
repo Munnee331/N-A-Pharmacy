@@ -3,6 +3,8 @@ import { ArrowRight, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import MedicineCard from '../shop/MedicineCard'
 import Button from '../ui/Button'
+import { useCart } from '../../context/CartContext'
+import showToast from '../../utils/toast'
 
 // Realistic dummy medicine data
 const FEATURED_MEDICINES = [
@@ -113,6 +115,24 @@ const FEATURED_MEDICINES = [
 ]
 
 export default function FeaturedMedicinesSection() {
+  const { addItem } = useCart()
+
+  function handleAddToCart(medicine) {
+    if (!medicine.inStock) return
+    addItem({
+      id:                   String(medicine.id),
+      name:                 medicine.name,
+      brand:                medicine.brand,
+      price:                medicine.price,
+      originalPrice:        medicine.originalPrice ?? null,
+      quantity:             1,
+      image:                medicine.image ?? '',
+      category:             medicine.category,
+      inStock:              medicine.inStock,
+      requiresPrescription: false,
+    })
+    showToast.success(`${medicine.name.split(' ').slice(0, 3).join(' ')} added to cart`)
+  }
   return (
     <section className="bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
@@ -161,11 +181,12 @@ export default function FeaturedMedicinesSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.35, delay: i * 0.06 }}
+              className="h-full"
             >
               <MedicineCard
                 {...medicine}
-                onAddToCart={() => console.log('Add to cart:', medicine.name)}
-                onAddToWishlist={() => console.log('Wishlist:', medicine.name)}
+                onAddToCart={() => handleAddToCart(medicine)}
+                onAddToWishlist={() => showToast.info('Wishlist coming soon')}
               />
             </motion.div>
           ))}

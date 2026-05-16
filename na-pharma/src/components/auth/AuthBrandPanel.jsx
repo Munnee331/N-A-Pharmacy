@@ -1,6 +1,9 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { HeartPulse, ShieldCheck, Truck, BadgeCheck, Pill, Activity } from 'lucide-react'
+import {
+  HeartPulse, ShieldCheck, Truck, BadgeCheck,
+  Pill, Activity, Stethoscope,
+} from 'lucide-react'
 
 /**
  * Left-side branding panel shared by Login and Register pages.
@@ -18,7 +21,6 @@ export default function AuthBrandPanel({ mode = 'login' }) {
     { icon: Truck,       text: 'Same-day delivery in Dhaka' },
   ]
 
-  // Stagger children
   const containerVariants = {
     hidden: {},
     visible: { transition: { staggerChildren: 0.1, delayChildren: 0.3 } },
@@ -27,6 +29,12 @@ export default function AuthBrandPanel({ mode = 'login' }) {
     hidden:  { opacity: 0, x: -16 },
     visible: { opacity: 1, x: 0, transition: { duration: 0.45, ease: 'easeOut' } },
   }
+
+  const orbitIcons = [
+    { icon: Pill,        pos: '-top-2 -right-2',                   bg: 'bg-primary-400/40' },
+    { icon: Activity,    pos: '-bottom-2 -left-2',                  bg: 'bg-secondary-400/40' },
+    { icon: Stethoscope, pos: 'top-1/2 -right-6 -translate-y-1/2', bg: 'bg-white/20' },
+  ]
 
   return (
     <div className="hidden lg:flex flex-col justify-between relative overflow-hidden
@@ -38,7 +46,6 @@ export default function AuthBrandPanel({ mode = 'login' }) {
                       bg-white/5 blur-3xl" aria-hidden="true" />
       <div className="pointer-events-none absolute -bottom-16 -right-16 w-64 h-64 rounded-full
                       bg-secondary-400/20 blur-3xl" aria-hidden="true" />
-      {/* Dot grid */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.04]"
         style={{
@@ -54,7 +61,7 @@ export default function AuthBrandPanel({ mode = 'login' }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <Link to="/" className="inline-flex items-center gap-2.5 group">
+        <Link to="/" className="inline-flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
             <HeartPulse size={18} className="text-white" />
           </div>
@@ -64,7 +71,7 @@ export default function AuthBrandPanel({ mode = 'login' }) {
         </Link>
       </motion.div>
 
-      {/* Centre illustration card */}
+      {/* Centre illustration */}
       <motion.div
         initial={{ opacity: 0, scale: 0.92 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -77,12 +84,7 @@ export default function AuthBrandPanel({ mode = 'login' }) {
           <div className="absolute inset-4 rounded-full bg-white/15 flex items-center justify-center">
             <HeartPulse size={44} className="text-white" />
           </div>
-          {/* Orbiting icons */}
-          {[
-            { icon: Pill,        pos: '-top-2 -right-2',  bg: 'bg-primary-400/40' },
-            { icon: Activity,    pos: '-bottom-2 -left-2', bg: 'bg-secondary-400/40' },
-            { icon: Stethoscope, pos: 'top-1/2 -right-6 -translate-y-1/2', bg: 'bg-white/20' },
-          ].map(({ icon: Icon, pos, bg }) => (
+          {orbitIcons.map(({ icon: Icon, pos, bg }) => (
             <div
               key={pos}
               className={`absolute ${pos} w-9 h-9 rounded-xl ${bg} backdrop-blur-sm
@@ -108,9 +110,9 @@ export default function AuthBrandPanel({ mode = 'login' }) {
         {/* Mini stats */}
         <div className="grid grid-cols-3 gap-3 w-full">
           {[
-            { value: '50K+',  label: 'Customers' },
-            { value: '10K+',  label: 'Medicines' },
-            { value: '4.9★',  label: 'Rating' },
+            { value: '50K+', label: 'Customers' },
+            { value: '10K+', label: 'Medicines' },
+            { value: '4.9★', label: 'Rating' },
           ].map(({ value, label }) => (
             <div key={label} className="bg-white/10 rounded-xl p-3 text-center border border-white/10">
               <p className="text-white font-bold text-base leading-none">{value}</p>
@@ -143,6 +145,3 @@ export default function AuthBrandPanel({ mode = 'login' }) {
     </div>
   )
 }
-
-// Need Stethoscope in the same file — import it
-import { Stethoscope } from 'lucide-react'
