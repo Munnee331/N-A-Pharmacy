@@ -6,9 +6,9 @@ import Button from '../ui/Button'
 
 // Floating stat badges shown around the illustration
 const stats = [
-  { label: 'Medicines',   value: '10,000+', icon: Pill,         color: 'bg-primary-50 text-primary-700 border-primary-100' },
-  { label: 'Customers',   value: '50,000+', icon: HeartPulse,   color: 'bg-secondary-50 text-secondary-700 border-secondary-100' },
-  { label: 'Pharmacists', value: '200+',    icon: Stethoscope,  color: 'bg-green-50 text-green-700 border-green-100' },
+  { label: 'Medicines',    icon: Pill,         color: 'bg-primary-50 text-primary-700 border-primary-100' },
+  { label: 'Customers',    icon: HeartPulse,   color: 'bg-secondary-50 text-secondary-700 border-secondary-100' },
+  { label: 'Pharmacists',    icon: Stethoscope,  color: 'bg-green-50 text-green-700 border-green-100' },
 ]
 
 // Trust badges below the CTA
@@ -177,7 +177,7 @@ export default function HeroSection() {
                   {/* Orbiting icons */}
                   <div className="absolute -top-2 -right-2 w-9 h-9 rounded-xl bg-secondary-50
                                   border border-secondary-100 flex items-center justify-center shadow-sm">
-                    <Pill size={16} className="text-secondary-600" />
+                    <Pill size={20} className="text-secondary-600" />
                   </div>
                   <div className="absolute -bottom-2 -left-2 w-9 h-9 rounded-xl bg-primary-50
                                   border border-primary-100 flex items-center justify-center shadow-sm">

@@ -4,20 +4,21 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev":          "concurrently --kill-others-on-fail --prefix-colors \"cyan,magenta\" --names \"API,WEB\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev": "vite",
     "dev:frontend": "vite",
-    "dev:backend":  "npm run dev --prefix ../backend",
-    "build":        "vite build",
-    "lint":         "eslint .",
-    "preview":      "vite preview",
-    "test":         "vitest --run",
-    "test:watch":   "vitest"
+    "dev:backend": "npm run dev --prefix ../backend",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "vitest --run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "axios": "^1.16.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.14.0",
+    "na-pharma-root": "file:..",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-hot-toast": "^2.6.0",

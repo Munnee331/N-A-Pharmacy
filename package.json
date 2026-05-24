@@ -4,10 +4,11 @@
   "description": "N A Pharma — monorepo root. Orchestrates backend and frontend dev servers.",
   "private": true,
   "scripts": {
-    "dev:all":     "concurrently --kill-others-on-fail --prefix-colors \"cyan,magenta\" --names \"API,WEB\" \"npm run dev --prefix backend\" \"npm run dev --prefix na-pharma\"",
+    "dev": "npm run dev:all",
+    "dev:all": "concurrently --kill-others-on-fail --prefix-colors \"cyan,magenta\" --names \"API,WEB\" \"npm run dev --prefix backend\" \"npm run dev:frontend --prefix na-pharma\"",
     "dev:backend": "npm run dev --prefix backend",
-    "dev:frontend":"npm run dev --prefix na-pharma",
-    "build":       "npm run build --prefix na-pharma",
+    "dev:frontend": "npm run dev --prefix na-pharma",
+    "build": "npm run build --prefix na-pharma",
     "install:all": "npm install --prefix backend && npm install --prefix na-pharma"
   },
   "devDependencies": {

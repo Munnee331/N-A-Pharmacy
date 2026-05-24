@@ -18,6 +18,7 @@ const AdminMedicinesPage     = lazy(() => import('../pages/AdminMedicinesPage'))
 const PharmacistPage         = lazy(() => import('../pages/PharmacistPage'))
 const CartPage               = lazy(() => import('../pages/CartPage'))
 const CheckoutPage           = lazy(() => import('../pages/CheckoutPage'))
+const OrdersPage             = lazy(() => import('../pages/OrdersPage'))
 const PrescriptionUploadPage   = lazy(() => import('../pages/PrescriptionUploadPage'))
 const PrescriptionHistoryPage  = lazy(() => import('../pages/PrescriptionHistoryPage'))
 const PaymentSuccessPage       = lazy(() => import('../pages/PaymentSuccessPage'))
@@ -69,6 +70,9 @@ export default function AppRouter() {
 
           <Route path="checkout"            element={
             <ProtectedRoute><CheckoutPage /></ProtectedRoute>
+          } />
+          <Route path="orders"              element={
+            <ProtectedRoute><OrdersPage /></ProtectedRoute>
           } />
           <Route path="upload-prescription" element={
             <ProtectedRoute><PrescriptionUploadPage /></ProtectedRoute>

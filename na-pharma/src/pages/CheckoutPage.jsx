@@ -15,6 +15,9 @@ import Modal from '../components/ui/Modal'
 import usePageMeta from '../hooks/usePageMeta'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
+import { initiatePayment } from '../api/paymentApi.js'
+import { uploadPrescription } from '../api/prescriptionApi.js'
+import showToast from '../utils/toast'
 import { PAYMENT_METHODS } from '../data/cartData'
 
 // ── Validation ────────────────────────────────────────────────────────────
@@ -58,6 +61,8 @@ export default function CheckoutPage() {
   const [isLoading, setLoading]       = useState(false)
   const [sslLoading, setSslLoading]   = useState(false)
   const [sslError, setSslError]       = useState('')
+  const [prescriptionFile, setPrescriptionFile] = useState(null)
+  const [prescriptionError, setPrescriptionError] = useState('')
   const [showSuccess, setSuccess]     = useState(false)
   const [orderId, setOrderId]         = useState('')
   // Demo payment gateway modal
@@ -66,7 +71,7 @@ export default function CheckoutPage() {
   const [demoOrderId, setDemoOrderId] = useState('')
 
   // ── Data sources ──────────────────────────────────────────────────────
-  const { items: cartItems, totalPrice, clearCart } = useCart()
+  const { items: cartItems, totalPrice, clearCart, removeItem } = useCart()
   const { user } = useAuth()
 
   const delivery = 60
@@ -93,6 +98,11 @@ export default function CheckoutPage() {
     if (sslError)    setSslError('')
   }
 
+  function handlePrescriptionChange(file) {
+    setPrescriptionFile(file)
+    if (prescriptionError) setPrescriptionError('')
+  }
+
   function getValidatedFields() {
     const errs = validate(fields)
     if (Object.keys(errs).length > 0) {
@@ -103,30 +113,95 @@ export default function CheckoutPage() {
   }
 
   // ── COD submit ────────────────────────────────────────────────────────
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
-    if (!getValidatedFields()) return
-    if (cartItems.length === 0) return
+    const valid = getValidatedFields()
+    if (!valid) return
+    if (cartItems.length === 0) {
+      setSslError('Your cart is empty. Add items to the cart before placing an order.')
+      return
+    }
+
+    // Do not block submission when prescription is missing — backend may
+    // filter out restricted items and return details. We allow the request
+    // to proceed so customers can still purchase non-prescription items.
 
     setLoading(true)
-    setTimeout(() => {
+    setSslError('')
+
+    let prescriptionPayload = null
+    let prescriptionImageUrl = null
+    if (hasPrescription && prescriptionFile) {
+      try {
+        const result = await uploadPrescription(prescriptionFile)
+        prescriptionPayload = result?.prescription?._id ?? null
+        prescriptionImageUrl = result?.imageUrl ?? null
+      } catch (err) {
+        setLoading(false)
+        setPrescriptionError(err?.message || 'Failed to upload prescription. Please try again.')
+        return
+      }
+    }
+
+    const payload = {
+      items: cartItems.map((item) => ({
+        medicine: item.id,
+        name:     item.name,
+        quantity: item.quantity,
+        price:    item.price,
+      })),
+      shippingAddress: {
+        address: fields.address.trim(),
+        city:    fields.city.trim(),
+        country: 'Bangladesh',
+      },
+      notes:             fields.orderNotes.trim(),
+      paymentMethod:     fields.paymentMethod,
+      prescription:      prescriptionPayload,
+      prescriptionImage: prescriptionImageUrl,
+    }
+
+    try {
+      const data = await initiatePayment(payload)
+
+      if (data.gatewayUrl) {
+        // If backend filtered out any restricted items, remove them from cart
+        if (data.filteredOutItems && data.filteredOutItems.length > 0) {
+          const names = data.filteredOutItems.map((it) => it.name).filter(Boolean)
+          data.filteredOutItems.forEach((it) => removeItem(String(it.medicine)))
+          if (names.length > 0) showToast.info(`Removed from cart (no prescription): ${names.join(', ')}`)
+        }
+        setLoading(false)
+        window.location.href = data.gatewayUrl
+        return
+      }
+
+      if (data.orderId) {
+        // Remove any filtered-out restricted items from the cart so user sees
+        // exactly what was dropped due to missing prescription.
+        if (data.filteredOutItems && data.filteredOutItems.length > 0) {
+          const names = data.filteredOutItems.map((it) => it.name).filter(Boolean)
+          data.filteredOutItems.forEach((it) => removeItem(String(it.medicine)))
+          if (names.length > 0) showToast.info(`Removed from cart (no prescription): ${names.join(', ')}`)
+        }
+        setOrderId(data.orderId)
+        setSuccess(true)
+        clearCart()
+        return
+      }
+
+      setSslError('Unexpected checkout response from server. Please try again.')
+    } catch (err) {
+      setSslError(err?.message || 'Could not place order. Please try again.')
+    } finally {
       setLoading(false)
-      setOrderId(`ORD-${Math.floor(Math.random() * 9000) + 1000}`)
-      setSuccess(true)
-      clearCart()
-    }, 1800)
+    }
   }
 
-  // ── Online payment — open demo gateway modal ──────────────────────────
+  // ── Online payment — initiate the backend payment session ─────────────
   function handleSSLPayment(e) {
     e.preventDefault()
-    setSslError('')
-    if (!getValidatedFields()) return
-    if (cartItems.length === 0) { setSslError('Your cart is empty.'); return }
-    const id = `TXN-${Date.now().toString(36).toUpperCase()}`
-    setDemoOrderId(id)
-    setGatewayStep('select')
-    setShowGateway(true)
+    return handleSubmit(e)
   }
 
   // Called when user confirms payment inside the demo gateway
@@ -375,17 +450,33 @@ export default function CheckoutPage() {
                   )}
                 </AnimatePresence>
 
+                {hasPrescription && (
+                  <div className="flex flex-col gap-2 mb-4">
+                    <label htmlFor="prescription-file" className="text-sm font-medium text-neutral-700">
+                      Upload Prescription Image
+                    </label>
+                    <Input
+                      id="prescription-file"
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={(e) => handlePrescriptionChange(e.target.files?.[0] ?? null)}
+                      error={prescriptionError}
+                      helperText="Required for prescription-only medicines."
+                    />
+                  </div>
+                )}
+
                 {/* Action buttons */}
                 <div className="flex flex-col gap-3">
                   {isOnlinePayment ? (
                     /* ── Demo SSLCommerz payment button ── */
                     <Button
-                      onClick={handleSSLPayment}
-                      size="lg"
-                      disabled={isLoading}
-                      className="w-full"
-                      aria-label="Pay online with SSLCommerz"
-                    >
+                        onClick={handleSSLPayment}
+                        size="lg"
+                        disabled={isLoading}
+                        className="w-full"
+                        aria-label="Pay online with SSLCommerz"
+                      >
                       <ExternalLink size={15} className="mr-2 flex-shrink-0" />
                       Pay Online with SSLCommerz
                     </Button>
@@ -473,10 +564,8 @@ export default function CheckoutPage() {
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────
 // Demo SSLCommerz Gateway — simulates the real payment gateway UI
-// for practicum / demo purposes. No real money is charged.
-// ─────────────────────────────────────────────────────────────────────────
+
 const DEMO_METHODS = [
   { id: 'bkash',  label: 'bKash',               color: 'bg-pink-500',   text: 'text-white', placeholder: '01XXXXXXXXX' },
   { id: 'nagad',  label: 'Nagad',               color: 'bg-orange-500', text: 'text-white', placeholder: '01XXXXXXXXX' },
@@ -534,7 +623,7 @@ function DemoGateway({ step, orderId, total, paymentMethod, onConfirm, onClose }
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-neutral-500">Amount Paid</span>
-            <span className="font-semibold text-neutral-800">৳{total.toLocaleString()}</span>
+            <span className="font-semibold text-neutral-800">TK{total.toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-neutral-500">Method</span>

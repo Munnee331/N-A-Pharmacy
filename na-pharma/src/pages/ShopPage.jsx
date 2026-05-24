@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PackageSearch, RotateCcw } from 'lucide-react'
 
-import { PRICE_RANGES, CATEGORIES } from '../data/medicines'
+import { PRICE_RANGES, CATEGORIES, SORT_OPTIONS } from '../data/medicines'
 import { getMedicines } from '../api/medicineApi'
 import MedicineCard from '../components/shop/MedicineCard'
 import ShopHero from '../components/shop/ShopHero'
@@ -15,7 +15,7 @@ import Button from '../components/ui/Button'
 import { useCart } from '../context/CartContext'
 import showToast from '../utils/toast'
 
-const ITEMS_PER_PAGE = 12
+const ITEMS_PER_PAGE = 16
 
 // Default filter state — single source of truth
 const DEFAULT_FILTERS = {
@@ -154,19 +154,46 @@ export default function ShopPage() {
 
       {/* ── Main content: sidebar + grid ── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex gap-8 items-start">
+        <div className="grid gap-8 xl:grid-cols-[300px_minmax(0,1fr)] items-start">
 
-          {/* Desktop sidebar */}
-          <ShopFilters
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            drawerOpen={false}
-            onDrawerToggle={() => {}}
-            totalResults={loading ? 0 : totalCount}
-          />
+          <aside className="hidden xl:block">
+            <div className="sticky top-24 space-y-6">
+              <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center justify-between gap-4 mb-6">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-neutral-500">
+                      Product Filter
+                    </p>
+                    <h2 className="text-xl font-semibold text-neutral-900">Refine results</h2>
+                  </div>
+                  <span className="text-sm text-neutral-500">{loading ? 0 : totalCount} items</span>
+                </div>
+                <ShopFilters
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                  drawerOpen={false}
+                  onDrawerToggle={() => {}}
+                  totalResults={loading ? 0 : totalCount}
+                  sidebarOnly
+                />
+              </div>
+            </div>
+          </aside>
 
-          {/* ── Product grid ── */}
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div>
+                <p className="text-sm text-neutral-500">
+                  Showing <span className="font-semibold text-neutral-900">{loading ? 0 : totalCount}</span> products
+                </p>
+              </div>
+              <div className="hidden sm:flex items-center gap-2 text-sm text-neutral-500">
+                <span>Sorted by</span>
+                <span className="font-semibold text-neutral-900">
+                  {SORT_OPTIONS.find((opt) => opt.value === filters.sort)?.label ?? 'Featured'}
+                </span>
+              </div>
+            </div>
 
             <ActiveFilterChips filters={filters} onFilterChange={handleFilterChange} onReset={handleReset} />
 

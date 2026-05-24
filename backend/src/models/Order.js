@@ -88,6 +88,15 @@ const orderSchema = new mongoose.Schema(
     },
 
     // ── Payment ───────────────────────────────────────────────────────────
+    paymentMethod: {
+      type: String,
+      enum: {
+        values: ['bkash', 'nagad', 'card', 'cod'],
+        message: 'Invalid payment method',
+      },
+      required: [true, 'Payment method is required'],
+    },
+
     paymentStatus: {
       type:    String,
       enum:    {

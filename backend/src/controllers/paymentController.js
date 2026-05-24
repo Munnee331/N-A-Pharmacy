@@ -1,4 +1,5 @@
 import Order            from '../models/Order.js'
+import Medicine         from '../models/Medicine.js'
 import { initiatePayment, validatePayment } from '../services/paymentService.js'
 import { ApiError }    from '../utils/ApiError.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
@@ -36,7 +37,12 @@ function frontendRedirect(res, path, params = {}) {
 // fields need to be sent from the frontend.
 // ─────────────────────────────────────────────────────────────────────────
 export const initiatePaymentSession = asyncHandler(async (req, res) => {
-  const { items, shippingAddress = {}, notes = '', prescription } = req.body
+  const { items, shippingAddress = {}, notes = '', prescription, paymentMethod } = req.body
+  const allowedMethods = ['bkash', 'nagad', 'card', 'cod']
+
+  if (!allowedMethods.includes(paymentMethod)) {
+    throw new ApiError(400, `paymentMethod must be one of: ${allowedMethods.join(', ')}`)
+  }
 
   // ── Validate items ────────────────────────────────────────────────────
   if (!Array.isArray(items) || items.length === 0) {
@@ -64,8 +70,39 @@ export const initiatePaymentSession = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'prescription must be a valid Prescription ID')
   }
 
-  // ── Calculate total ───────────────────────────────────────────────────
-  const totalAmount = items.reduce(
+  // ── Prescription filtering: if the customer did NOT provide a prescription
+  // (either a Prescription id or an uploaded prescriptionImage url), remove
+  // any prescription-required medicines from the items list so the customer
+  // can still purchase non-prescription items.
+  const medicineIds = items.map((item) => item.medicine)
+  const prescriptionItems = await Medicine.find(
+    { _id: { $in: medicineIds }, prescriptionRequired: true },
+    '_id'
+  ).lean()
+
+  const restrictedIds = new Set(prescriptionItems.map((m) => String(m._id)))
+  const providedPrescription = Boolean(prescription) || Boolean(req.body.prescriptionImage)
+
+  // Build arrays for processing vs filtered out
+  let processingItems = items
+  let filteredOutItems = []
+  if (!providedPrescription && restrictedIds.size > 0) {
+    processingItems = items.filter((it) => !restrictedIds.has(String(it.medicine)))
+    filteredOutItems = items
+      .filter((it) => restrictedIds.has(String(it.medicine)))
+      .map((it) => ({ medicine: it.medicine, name: it.name, quantity: Number(it.quantity) }))
+  }
+
+  // If nothing remains to process, return a successful response noting the
+  // filtered items so the frontend can update the cart accordingly.
+  if (processingItems.length === 0) {
+    return res.status(200).json(
+      new ApiResponse(200, { filteredOutItems }, 'No eligible non-prescription items to process. Restricted items were removed due to missing prescription.')
+    )
+  }
+
+  // ── Calculate total for items that will actually be processed ─────────
+  const totalAmount = processingItems.reduce(
     (sum, item) => sum + Number(item.price) * Number(item.quantity),
     0
   )
@@ -74,10 +111,9 @@ export const initiatePaymentSession = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Total order amount must be greater than 0')
   }
 
-  // ── Create the Order (pending_payment / unpaid) ───────────────────────
-  const order = await Order.create({
+  const orderPayload = {
     customer: req.user.userId,
-    items:    items.map((item) => ({
+    items:    processingItems.map((item) => ({
       medicine: item.medicine,
       name:     item.name.trim(),
       quantity: Number(item.quantity),
@@ -89,11 +125,26 @@ export const initiatePaymentSession = asyncHandler(async (req, res) => {
       city:    shippingAddress.city    ?? 'Dhaka',
       country: shippingAddress.country ?? 'Bangladesh',
     },
-    notes:        notes.trim(),
-    prescription: prescription ?? null,
-    status:       'pending_payment',
-    paymentStatus:'unpaid',
-  })
+    notes:          notes.trim(),
+    prescription:   prescription ?? null,
+    paymentMethod,
+    paymentStatus:  'unpaid',
+  }
+
+  if (paymentMethod === 'cod') {
+    orderPayload.status = 'processing'
+  } else {
+    orderPayload.status = 'pending_payment'
+  }
+
+
+  const order = await Order.create(orderPayload)
+
+  if (paymentMethod === 'cod') {
+    return res.status(200).json(
+      new ApiResponse(200, { orderId: order._id, gatewayUrl: null, filteredOutItems }, 'Cash on delivery order placed successfully')
+    )
+  }
 
   // ── Initiate SSLCommerz session ───────────────────────────────────────
   let gatewayUrl
@@ -117,7 +168,7 @@ export const initiatePaymentSession = asyncHandler(async (req, res) => {
   res.status(200).json(
     new ApiResponse(
       200,
-      { orderId: order._id, gatewayUrl },
+      { orderId: order._id, gatewayUrl, filteredOutItems },
       'Payment session initiated — redirect user to gatewayUrl'
     )
   )

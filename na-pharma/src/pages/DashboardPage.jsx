@@ -170,6 +170,14 @@ export default function DashboardPage() {
               </Link>
             </div>
 
+            {/* Invoice download error */}
+            {dlError && (
+              <div className="flex items-center gap-2 p-3 mb-3 rounded-xl bg-red-50 border border-red-100">
+                <AlertCircle size={13} className="text-red-500 flex-shrink-0" />
+                <p className="text-xs text-red-700">{dlError}</p>
+              </div>
+            )}
+
             {loading ? (
               <LoadingSkeleton variant="table-row" count={3} />
             ) : orders.length === 0 ? (
@@ -182,29 +190,54 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                {orders.map((order) => (
-                  <div key={order.id ?? order._id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-neutral-50 border border-neutral-100">
-                    <div>
-                      <p className="text-sm font-semibold text-neutral-800">
-                        #{String(order.id ?? order._id).slice(-8).toUpperCase()}
-                      </p>
-                      <p className="text-xs text-neutral-400 mt-0.5">
-                        {order.date ?? new Date(order.createdAt).toLocaleDateString('en-BD')}
-                        {order.items ? ` · ${order.items} item${order.items !== 1 ? 's' : ''}` : ''}
-                      </p>
+                {orders.map((order) => {
+                  const oid        = order._id ?? order.id
+                  const isPaid     = order.paymentStatus === 'paid'
+                  const isDownloading = dlLoadingId === oid
+                  return (
+                    <div key={oid}
+                      className="flex flex-col gap-2 p-3 rounded-xl bg-neutral-50 border border-neutral-100">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-neutral-800">
+                            #{String(oid).slice(-8).toUpperCase()}
+                          </p>
+                          <p className="text-xs text-neutral-400 mt-0.5">
+                            {order.date ?? new Date(order.createdAt).toLocaleDateString('en-BD')}
+                            {Array.isArray(order.items)
+                              ? ` · ${order.items.length} item${order.items.length !== 1 ? 's' : ''}`
+                              : order.items ? ` · ${order.items} item${order.items !== 1 ? 's' : ''}` : ''}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-neutral-900">
+                            {order.total ?? `৳${order.totalAmount?.toLocaleString()}`}
+                          </span>
+                          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full capitalize
+                            ${STATUS_COLORS[order.status] ?? 'bg-neutral-100 text-neutral-600'}`}>
+                            {(order.status ?? '').replace('_', ' ')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Invoice download — only for paid orders */}
+                      {isPaid && (
+                        <button
+                          onClick={() => handleDownloadInvoice(oid)}
+                          disabled={isDownloading}
+                          className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700
+                                     font-medium self-start disabled:opacity-50 disabled:cursor-not-allowed
+                                     focus:outline-none focus:ring-2 focus:ring-primary-500 rounded px-1"
+                        >
+                          {isDownloading
+                            ? <><Loader2 size={12} className="animate-spin" />Generating…</>
+                            : <><Download size={12} />Download Invoice (PDF)</>
+                          }
+                        </button>
+                      )}
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-neutral-900">
-                        {order.total ?? `৳${order.totalAmount?.toLocaleString()}`}
-                      </span>
-                      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full capitalize
-                        ${STATUS_COLORS[order.status] ?? 'bg-neutral-100 text-neutral-600'}`}>
-                        {(order.status ?? '').replace('_', ' ')}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </motion.div>

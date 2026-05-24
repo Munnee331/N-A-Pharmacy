@@ -19,8 +19,24 @@ const __dirname  = path.dirname(__filename)
 const app = express()
 
 // ── CORS ──────────────────────────────────────────────────────────────────
+const allowedOrigins = env.CLIENT_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true
+  if (allowedOrigins.includes(origin)) return true
+  if (env.isDev) {
+    return /^(https?:\/\/localhost(:\d+)?|https?:\/\/127\.0\.0\.1(:\d+)?)$/.test(origin)
+  }
+  return false
+}
+
 app.use(cors({
-  origin:         env.CLIENT_ORIGIN.split(',').map((o) => o.trim()),
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) {
+      return callback(null, true)
+    }
+    callback(new Error('Not allowed by CORS'), false)
+  },
   credentials:    true,
   methods:        ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
